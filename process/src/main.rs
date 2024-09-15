@@ -8,7 +8,7 @@ use memmap2::Mmap;
 use std::fs::File;
 use regex::Regex;
 use lazy_static::lazy_static;
-use scraper::{Html, Selector}; // HTML parser
+use scraper::{Html, Selector, ElementRef};
 use strsim::jaro_winkler; // For fuzzy city matching
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -71,16 +71,42 @@ fn fuzzy_match_city(city_name: &str, word: &str, threshold: f64) -> bool {
     jaro_winkler(city_name, word) >= threshold
 }
 
-// Function to check if a keyword or city match is inside an <a> tag in content
-fn is_inside_link(html: &Html, matched_text: &str) -> bool {
-    let a_selector = Selector::parse("a").unwrap();
-    for element in html.select(&a_selector) {
-        for text in element.text() {
-            if text.contains(matched_text) {
-                return true; // The matched text is inside an <a> tag
+// Iterative function to check if a match is inside an <a> tag
+fn is_inside_anchor_tag(element: ElementRef, matched_word: &str) -> bool {
+    let mut current_element = Some(element);
+
+    while let Some(el) = current_element {
+        // Check if this element is an anchor (<a>) tag and contains the match
+        if el.value().name() == "a" {
+            let text_content: String = el.text().collect();
+            if text_content.contains(matched_word) {
+                return true;
             }
         }
+
+        // Move up to the parent element
+        current_element = el.parent().and_then(ElementRef::wrap);
     }
+
+    false
+}
+
+// Function to check if the matched word (city or keyword) is inside an <a> tag
+fn check_if_inside_link(html: &Html, matched_word: &str, relaxed: bool) -> bool {
+    if relaxed {
+        return false; // Allow matching inside links when relaxed
+    }
+
+    // Traverse through all elements and see if the word is inside an <a> tag
+    let elements = html.tree.root().descendants().filter_map(ElementRef::wrap);
+
+    for element in elements {
+        let text_content: String = element.text().collect();
+        if text_content.contains(matched_word) && is_inside_anchor_tag(element, matched_word) {
+            return true; // Found the match inside an <a> tag
+        }
+    }
+
     false
 }
 
@@ -176,7 +202,7 @@ fn process_entry(
                 println!("Keyword found in sentence {}.", i + 1);
 
                 // If the keyword is inside an <a> tag, skip unless relaxed mode is on
-                if !relaxed && is_inside_link(&html, sentence) {
+                if !relaxed && check_if_inside_link(&html, sentence, relaxed) {
                     println!("Keyword match inside <a> tag in sentence {}, skipping.", i + 1);
                     continue;
                 }
@@ -185,8 +211,8 @@ fn process_entry(
                 for (city_name, _) in city_map.iter() {
                     if sentence_words.iter().any(|word| fuzzy_match_city(city_name, word, fuzzy_threshold_content)) {
                         // Check if the city match is inside an <a> tag
-                        if !relaxed && is_inside_link(&html, city_name) {
-                            println!("City '{}' match inside <a> tag in content, skipping.", city_name);
+                        if !relaxed && check_if_inside_link(&html, city_name, relaxed) {
+                            println!("City match inside <a> tag in sentence {}, skipping.", i + 1);
                             continue;
                         }
 

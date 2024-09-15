@@ -101,7 +101,6 @@
             }).addTo(map);
         }
 
-        // Render a batch of news (lazy loading)
         function renderNewsBatch() {
             const fragment = document.createDocumentFragment();
             const maxIndex = Math.min(currentIndex + newsBatchSize, newsData.length);
@@ -111,7 +110,6 @@
                 const location = cityData.city === "UNSPECIFIED_LOCATION" ? "Unspecified Location" : cityData.city;
                 const newsCount = cityData.news.length;
 
-                // Create <details> for each city bucket
                 const detailsElement = document.createElement('details');
                 const summaryElement = document.createElement('summary');
                 summaryElement.innerText = `${location} (${newsCount} entries)`;
@@ -151,7 +149,6 @@
             currentIndex = maxIndex;
         }
 
-        // Add markers to the map
         function addMarkers() {
             newsData.forEach(cityData => {
                 let coordinates = cityData.coordinates;
@@ -167,7 +164,6 @@
             });
         }
 
-        // Load more news when scrolling to the bottom
         function handleScroll() {
             if (newsList.scrollTop + newsList.clientHeight >= newsList.scrollHeight) {
                 renderNewsBatch();
@@ -180,15 +176,14 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     newsData = JSON.parse(e.target.result);
-                    currentIndex = 0; // Reset index for infinite scroll
-                    renderNewsBatch(); // Load initial batch
-                    addMarkers(); // Add markers to the map
+                    currentIndex = 0; 
+                    renderNewsBatch();
+                    addMarkers();
                 };
                 reader.readAsText(file);
             }
         });
 
-        // Attach scroll event listener
         newsList.addEventListener('scroll', handleScroll);
 
         initializeMap();

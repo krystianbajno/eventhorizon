@@ -3,6 +3,7 @@ import hashlib
 import json
 import re
 import subprocess
+from datetime import datetime
 from playwright.sync_api import sync_playwright
 
 NEWS_SOURCES = "sources/news_sources_selected.txt"
@@ -10,7 +11,7 @@ OUTPUT_DIR = "data/output"
 ALL_URLS_FILE = os.path.join(OUTPUT_DIR, "all_news_urls.txt")
 SCRAPED_DIR = os.path.join(OUTPUT_DIR, "scraped")
 METADATA_FILE = os.path.join(OUTPUT_DIR, "metadata.json")
-SCRAPING_DEPTH = 1
+SCRAPING_DEPTH = 3
 EXCLUDE_EXT = [".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".woff", ".woff2", ".tiff", ".ico"]
 
 os.makedirs(SCRAPED_DIR, exist_ok=True)
@@ -43,7 +44,6 @@ def download_full_page_with_js(url, output_file):
             browser.close()
         except Exception as e:
             print(f"Error parsing {url}: {e}")
-            
 
 def should_exclude_url(url):
     return any(url.endswith(ext) for ext in EXCLUDE_EXT)
@@ -53,12 +53,14 @@ def run_playwright_for_content(urls_file, scraped_dir):
         urls = [url.strip() for url in f if url.strip()]
 
     metadata = []
-
+    collection_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    count = 0
     for url in urls:
         if should_exclude_url(url):
             print(f"Skipping URL due to excluded extension: {url}")
             continue
-
+        
+        count = count + 1
         filename = hash_url(url)
         output_file = os.path.join(scraped_dir, f"{filename}_content.html")
 
@@ -68,15 +70,22 @@ def run_playwright_for_content(urls_file, scraped_dir):
             content = f.read()
             title = extract_title(content)
         
+        
         metadata.append({
             "filepath": output_file,
             "title": title,
-            "url": url
+            "url": url,
+            "collection_date": collection_date
         })
     
-        with open(METADATA_FILE, "w", encoding="utf-8") as json_file:
-            json.dump(metadata, json_file, ensure_ascii=False, indent=4)
-        print(f"Metadata saved to {METADATA_FILE}")
+        if count % 10 == 0:
+            with open(METADATA_FILE, "w", encoding="utf-8") as json_file:
+                json.dump(metadata, json_file, ensure_ascii=False, indent=4)
+            print(f"Metadata saved to {METADATA_FILE}")
+    
+    with open(METADATA_FILE, "w", encoding="utf-8") as json_file:
+        json.dump(metadata, json_file, ensure_ascii=False, indent=4)
+    print(f"Metadata saved to {METADATA_FILE}")
 
 def hash_url(url):
     return hashlib.md5(url.encode()).hexdigest()

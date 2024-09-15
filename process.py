@@ -34,8 +34,6 @@ def match_cities_in_content(content, city_names):
             matched_cities.append(city_name)
     return matched_cities
 
-collection_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
 if not os.path.exists(metadata_file):
     print(f"Metadata file {metadata_file} not found.")
     sys.exit(1)
@@ -47,6 +45,7 @@ for entry in metadata:
     filepath = entry["filepath"]
     title = entry["title"]
     url = entry["url"]
+    collection_date = entry["collection_date"]
 
     if os.path.exists(filepath):
         with open(filepath, "r", encoding="utf-8") as content_file:

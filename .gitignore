@@ -1,3 +1,4 @@
 data/cities/*
-data/output/
+data/output/*
 collect_cities/node_modules
+data/mapped/*

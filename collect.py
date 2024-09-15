@@ -4,6 +4,7 @@ import json
 import re
 import subprocess
 from datetime import datetime
+import time
 from playwright.sync_api import sync_playwright
 
 NEWS_SOURCES = "sources/news_sources_selected.txt"
@@ -45,6 +46,13 @@ def download_full_page_with_js(url, output_file):
         except Exception as e:
             print(f"Error parsing {url}: {e}")
 
+def is_already_processed(url, list_of_scraped_dir_files):
+    filename = hash_url(url)
+    output_file = f"{filename}_content.html"
+    
+    return output_file in list_of_scraped_dir_files
+        
+
 def should_exclude_url(url):
     return any(url.endswith(ext) for ext in EXCLUDE_EXT)
 
@@ -56,33 +64,42 @@ def run_playwright_for_content(urls_file, scraped_dir):
     collection_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     count = 0
     for url in urls:
-        if should_exclude_url(url):
-            print(f"Skipping URL due to excluded extension: {url}")
-            continue
-        
-        count = count + 1
-        filename = hash_url(url)
-        output_file = os.path.join(scraped_dir, f"{filename}_content.html")
+        try:
+            url_files = os.listdir(scraped_dir)
+            if is_already_processed(url, url_files):
+                print(f"Skipping URL due already processed. {url}")
+                continue
+            
+            if should_exclude_url(url):
+                print(f"Skipping URL due to excluded extension: {url}")
+                continue
+            
+            count = count + 1
+            filename = hash_url(url)
+            output_file = os.path.join(scraped_dir, f"{filename}_content.html")
 
-        download_full_page_with_js(url, output_file)
+            download_full_page_with_js(url, output_file)
+            
+            with open(output_file, "r", encoding="utf-8") as f:
+                content = f.read()
+                title = extract_title(content)
+            
+            
+            metadata.append({
+                "filepath": output_file,
+                "title": title,
+                "url": url,
+                "collection_date": collection_date
+            })
         
-        with open(output_file, "r", encoding="utf-8") as f:
-            content = f.read()
-            title = extract_title(content)
-        
-        
-        metadata.append({
-            "filepath": output_file,
-            "title": title,
-            "url": url,
-            "collection_date": collection_date
-        })
-    
-        if count % 10 == 0:
             with open(METADATA_FILE, "w", encoding="utf-8") as json_file:
                 json.dump(metadata, json_file, ensure_ascii=False, indent=4)
             print(f"Metadata saved to {METADATA_FILE}")
-    
+            
+        except Exception as e:
+            print(f"Whoops, something happened with: {url} - {e}")
+            time.sleep(10)
+        
     with open(METADATA_FILE, "w", encoding="utf-8") as json_file:
         json.dump(metadata, json_file, ensure_ascii=False, indent=4)
     print(f"Metadata saved to {METADATA_FILE}")

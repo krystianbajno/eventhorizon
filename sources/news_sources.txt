@@ -61,9 +61,6 @@ https://www.sportowefakty.pl
 https://www.2x45.info
 https://www.interia.pl/sport
 https://www.sport.tvp.pl
-https://www.kozaczek.pl
-https://www.plotek.pl
-https://www.pudelek.pl
 https://www.jastrzabpost.pl
 https://www.gala.pl
 https://www.viva.pl
@@ -77,7 +74,6 @@ https://www.polygamia.pl
 https://www.cdaction.pl
 https://www.gram.pl
 https://www.antyweb.pl
-https://www.spidersweb.pl
 https://www.tabletowo.pl
 https://www.telepolis.pl
 https://www.komputerswiat.pl
@@ -89,119 +85,122 @@ https://www.purepc.pl
 https://www.komorkomania.pl
 https://www.geekweek.pl
 https://www.dobreprogramy.pl
-https://www.sadistic.pl
 https://www.filmweb.pl
 https://www.chip.pl
 https://www.antyweb.pl
 https://www.dobreprogramy.pl
- https://www.blackhatethicalhacking.com
- https://www.us-cert.gov
- http://feeds.feedburner.com
- https://greydynamics.com
- http://feeds.feedburner.com
- http://www.hexacorn.com
- http://krebsonsecurity.com
- http://blog.zeltser.com
- https://rss.packetstormsecurity.com
- http://securityaffairs.co
- http://feeds.feedburner.com
- https://thedfirreport.com
- http://thehackernews.com
- http://www.theregister.co.uk
- http://feeds.trendmicro.com
- http://blog.crackpassword.com
- http://blog.pi3.com.pl
- http://ctfhacker.com
- http://lcamtuf.blogspot.com
- https://5pider.net
- https://azeria-labs.com
- https://binarygecko.com
- https://bishopfox.com
- https://blog.bitmex.com
- https://blog.dfsec.com
- https://blog.isosceles.com
- https://blog.qualys.com
- https://blog.rapid7.com
- https://blog.ret2.io
- https://blog.rust-lang.org
- https://blog.talosintelligence.com
- https://blog.theori.io
- https://blog.trailofbits.com
- https://blog.xpnsec.com
- https://bugcheck.me
- https://census-labs.com
- https://disconnect3d.pl
- https://exploitreversing.com
- https://feeds.feedburner.com
- https://feeds.feedburner.com
- https://feeds.feedburner.com
- https://frycos.github.io
- https://fuzzing.io
- https://gamozolabs.github.io
- https://googleprojectzero.blogspot.com
- https://h0mbre.github.io
- https://j00ru.vexillium.org
- https://marcograss.github.io
- https://medium.com
- https://natashenka.ca
- https://payload.pl
- https://raelize.com
- https://rayanfam.com
- https://revers.engineering
- https://ricercasecurity.blogspot.com
- https://secret.club
- https://sector7.computest.nl
- https://securelist.com
- https://sensepost.com
- https://starlabs.sg
- https://tandasat.github.io
- https://thomasdullien.github.io
- https://threedots.ovh
- https://v-v.space
- https://worthdoingbadly.com
- https://www.antid0te.com
- https://www.bentkowski.info
- https://www.corellium.com
- https://www.greynoise.io
- https://www.kelacyber.com
- https://www.mdsec.co.uk
- https://www.paloaltonetworks.com
- https://www.praetorian.com
- https://www.tiraniddo.dev
- https://www.zerodayinitiative.com
- https://www.zerodayinitiative.com
- https://www.zerodayinitiative.com
- https://www.zimperium.com
- https://zaufanatrzeciastrona.pl
- https://www.blackhillsinfosec.com
- https://www.exploit-db.com
- https://portswigger.net
- https://www.mandiant.com
- https://www.zdnet.com
- https://krebsonsecurity.com
- https://isc.sans.edu
- https://us-cert.cisa.gov
- https://securityintelligence.com
- https://msrc.microsoft.com
- https://gbhackers.com
- https://gbhackers.com
- https://www.hackercombat.com
- https://www.mcafee.com
- https://www.kaspersky.co.uk
- https://blog.avast.com
- https://www.avira.com
- https://grahamcluley.com
- https://summoning.team
- https://aws.amazon.com
- https://www.microsoft.com
- http://securityreason.com
- http://cyberarms.wordpress.com
- http://researchcenter.paloaltonetworks.com
- https://blogs.sophos.com
- https://en.hackndo.com
- https://securityonline.info
- https://malware.news
- https://www.cloudvulndb.org
- https://vuldb.com
- https://programistamag.pl
- https://cvefeed.io
+https://www.blackhatethicalhacking.com
+https://www.us-cert.gov
+http://feeds.feedburner.com
+https://greydynamics.com
+http://feeds.feedburner.com
+http://www.hexacorn.com
+http://krebsonsecurity.com
+http://blog.zeltser.com
+https://rss.packetstormsecurity.com
+http://securityaffairs.co
+http://feeds.feedburner.com
+https://thedfirreport.com
+http://thehackernews.com
+http://www.theregister.co.uk
+http://feeds.trendmicro.com
+http://blog.crackpassword.com
+http://blog.pi3.com.pl
+http://ctfhacker.com
+http://lcamtuf.blogspot.com
+https://5pider.net
+https://azeria-labs.com
+https://binarygecko.com
+https://bishopfox.com
+https://blog.bitmex.com
+https://blog.dfsec.com
+https://blog.isosceles.com
+https://blog.qualys.com
+https://blog.rapid7.com
+https://blog.ret2.io
+https://blog.rust-lang.org
+https://blog.talosintelligence.com
+https://blog.theori.io
+https://blog.trailofbits.com
+https://blog.xpnsec.com
+https://bugcheck.me
+https://census-labs.com
+https://disconnect3d.pl
+https://exploitreversing.com
+https://feeds.feedburner.com
+https://feeds.feedburner.com
+https://feeds.feedburner.com
+https://frycos.github.io
+https://fuzzing.io
+https://gamozolabs.github.io
+https://googleprojectzero.blogspot.com
+https://h0mbre.github.io
+https://j00ru.vexillium.org
+https://marcograss.github.io
+https://medium.com
+https://natashenka.ca
+https://payload.pl
+https://raelize.com
+https://rayanfam.com
+https://revers.engineering
+https://ricercasecurity.blogspot.com
+https://secret.club
+https://sector7.computest.nl
+https://securelist.com
+https://sensepost.com
+https://starlabs.sg
+https://tandasat.github.io
+https://thomasdullien.github.io
+https://threedots.ovh
+https://v-v.space
+https://worthdoingbadly.com
+https://www.antid0te.com
+https://www.bentkowski.info/blog/
+https://www.corellium.com
+https://www.greynoise.io
+https://www.kelacyber.com
+https://www.mdsec.co.uk
+https://www.paloaltonetworks.com
+https://www.praetorian.com
+https://www.tiraniddo.dev
+https://www.zerodayinitiative.com
+https://www.zimperium.com
+https://zaufanatrzeciastrona.pl
+https://www.blackhillsinfosec.com
+https://www.exploit-db.com
+https://portswigger.net
+https://www.mandiant.com
+https://www.zdnet.com
+https://krebsonsecurity.com
+https://isc.sans.edu
+https://us-cert.cisa.gov
+https://securityintelligence.com
+https://msrc.microsoft.com
+https://gbhackers.com
+https://gbhackers.com
+https://www.hackercombat.com
+https://www.mcafee.com
+https://www.kaspersky.co.uk
+https://blog.avast.com
+https://www.avira.com
+https://grahamcluley.com
+https://summoning.team
+https://aws.amazon.com
+https://www.microsoft.com
+http://securityreason.com
+http://cyberarms.wordpress.com
+http://researchcenter.paloaltonetworks.com
+https://blogs.sophos.com
+https://en.hackndo.com
+https://securityonline.info
+https://malware.news
+https://www.cloudvulndb.org
+https://vuldb.com
+https://programistamag.pl
+https://cvefeed.io
+https://defence24.pl
+https://defence24.com
+https://www.nytimes.com
+https://pogoda.wp.pl
+https://pogoda.onet.pl
+https://pogoda.interia.pl

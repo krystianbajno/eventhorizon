@@ -1,8 +1,11 @@
 https://pogoda.wp.pl
+https://pogoda.onet.pl
+https://pogoda.interia.pl
 https://www.interia.pl
 https://www.wp.pl
 https://www.onet.pl
 https://www.o2.pl
+https://tvn24.pl/tvnmeteo
 https://tvn24.pl/polska
 https://www.se.pl
 https://www.fakt.pl

@@ -3,7 +3,6 @@ import json
 import sys
 from fuzzywuzzy import fuzz
 from collections import defaultdict
-from datetime import datetime
 
 if len(sys.argv) < 2:
     print("Usage: python3 process.py <keyword1> <keyword2> ...")
@@ -23,7 +22,7 @@ news_by_city = defaultdict(lambda: {"coordinates": None, "news": []})
 
 def is_keyword_in_content(content, keywords):
     for keyword in keywords:
-        if keyword.lower() in content.lower():
+        if fuzz.partial_ratio(keyword.lower(), content.lower()) >= 60:
             return True
     return False
 

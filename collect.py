@@ -11,7 +11,7 @@ OUTPUT_DIR = "data/output"
 ALL_URLS_FILE = os.path.join(OUTPUT_DIR, "all_news_urls.txt")
 SCRAPED_DIR = os.path.join(OUTPUT_DIR, "scraped")
 METADATA_FILE = os.path.join(OUTPUT_DIR, "metadata.json")
-SCRAPING_DEPTH = 3
+SCRAPING_DEPTH = 1
 EXCLUDE_EXT = [".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".woff", ".woff2", ".tiff", ".ico"]
 
 os.makedirs(SCRAPED_DIR, exist_ok=True)

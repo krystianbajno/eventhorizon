@@ -5,6 +5,7 @@ import re
 import subprocess
 from datetime import datetime
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from playwright.sync_api import sync_playwright
 
 NEWS_SOURCES = "sources/news_sources_selected.txt"
@@ -13,6 +14,7 @@ ALL_URLS_FILE = os.path.join(OUTPUT_DIR, "all_news_urls.txt")
 SCRAPED_DIR = os.path.join(OUTPUT_DIR, "scraped")
 METADATA_FILE = os.path.join(OUTPUT_DIR, "metadata.json")
 SCRAPING_DEPTH = 1
+CONCURRENT_DOWNLOAD_WORKERS=3
 EXCLUDE_EXT = [".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".woff", ".woff2", ".tiff", ".ico"]
 
 os.makedirs(SCRAPED_DIR, exist_ok=True)
@@ -56,52 +58,54 @@ def is_already_processed(url, list_of_scraped_dir_files):
 def should_exclude_url(url):
     return any(url.endswith(ext) for ext in EXCLUDE_EXT)
 
+def process_url(url, scraped_dir, metadata, collection_date):
+    try:
+        url_files = os.listdir(scraped_dir)
+        if is_already_processed(url, url_files):
+            print(f"Skipping URL due already processed. {url}")
+            return None
+        
+        if should_exclude_url(url):
+            print(f"Skipping URL due to excluded extension: {url}")
+            return None
+        
+        filename = hash_url(url)
+        output_file = os.path.join(scraped_dir, f"{filename}_content.html")
+
+        download_full_page_with_js(url, output_file)
+        
+        with open(output_file, "r", encoding="utf-8") as f:
+            content = f.read()
+            title = extract_title(content)
+        
+        metadata.append({
+            "filepath": output_file,
+            "title": title,
+            "url": url,
+            "collection_date": collection_date
+        })
+        
+        return metadata
+    except Exception as e:
+        print(f"Whoops, something happened with: {url} - {e}")
+        time.sleep(15)
+        return None
+
 def run_playwright_for_content(urls_file, scraped_dir, metadata):
     with open(urls_file, "r") as f:
         urls = [url.strip() for url in f if url.strip()]
 
     collection_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    count = 0
-    for url in urls:
-        try:
-            url_files = os.listdir(scraped_dir)
-            if is_already_processed(url, url_files):
-                print(f"Skipping URL due already processed. {url}")
-                continue
-            
-            if should_exclude_url(url):
-                print(f"Skipping URL due to excluded extension: {url}")
-                continue
-            
-            count = count + 1
-            filename = hash_url(url)
-            output_file = os.path.join(scraped_dir, f"{filename}_content.html")
-
-            download_full_page_with_js(url, output_file)
-            
-            with open(output_file, "r", encoding="utf-8") as f:
-                content = f.read()
-                title = extract_title(content)
-            
-            
-            metadata.append({
-                "filepath": output_file,
-                "title": title,
-                "url": url,
-                "collection_date": collection_date
-            })
+    
+    with ThreadPoolExecutor(max_workers=CONCURRENT_DOWNLOAD_WORKERS) as executor:
+        futures = [executor.submit(process_url, url, scraped_dir, metadata, collection_date) for url in urls]
         
-            with open(METADATA_FILE, "w", encoding="utf-8") as json_file:
-                json.dump(metadata, json_file, ensure_ascii=False, indent=4)
-            print(f"Metadata saved to {METADATA_FILE}")
-            
-        except Exception as e:
-            print(f"Whoops, something happened with: {url} - {e}")
-            time.sleep(10)
-        
-    with open(METADATA_FILE, "w", encoding="utf-8") as json_file:
-        json.dump(metadata, json_file, ensure_ascii=False, indent=4)
-    print(f"Metadata saved to {METADATA_FILE}")
+        for future in as_completed(futures):
+            result = future.result()
+            if result:
+                with open(METADATA_FILE, "w", encoding="utf-8") as json_file:
+                    json.dump(metadata, json_file, ensure_ascii=False, indent=4)
+                print(f"Metadata saved to {METADATA_FILE}")
 
 def hash_url(url):
     return hashlib.md5(url.encode()).hexdigest()

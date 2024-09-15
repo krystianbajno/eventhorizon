@@ -1,5 +1,4 @@
 use std::fs;
-use std::path::Path;
 use serde::{Deserialize, Serialize};
 use rayon::prelude::*;
 use anyhow::Result;
@@ -8,8 +7,8 @@ use std::collections::{HashMap, HashSet};
 use memmap2::Mmap;
 use std::fs::File;
 use regex::Regex;
-use std::io::Read;
 use lazy_static::lazy_static;
+use strsim::jaro_winkler; // For fuzzy city matching
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct City {
@@ -19,7 +18,7 @@ struct City {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Location {
-    coordinates: Vec<f64>,
+    coordinates: Vec<f64>, // Latitude, Longitude
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -45,32 +44,17 @@ struct NewsByCity {
     news: Vec<NewsItem>,
 }
 
-// Use lazy_static for regex compilation (done once)
 lazy_static! {
     static ref WORD_SPLIT_REGEX: Regex = Regex::new(r"[^\w]+").unwrap();
 }
 
-// Utility function to split content into words, optimizing regex reuse
+// Utility function to split content into words (lowercased, alphanumeric only)
 fn split_content_into_words(content: &str) -> Vec<String> {
     WORD_SPLIT_REGEX
         .split(content)
         .map(|word| word.to_lowercase())
         .filter(|word| !word.is_empty())
         .collect()
-}
-
-// Detect file type using magic bytes
-fn detect_file_type(filepath: &str) -> Result<String> {
-    let mut file = File::open(filepath)?;
-    let mut buffer = [0; 4];
-    file.read_exact(&mut buffer)?;
-
-    match &buffer {
-        [0x89, 0x50, 0x4E, 0x47] => Ok("png".to_string()),
-        [0xFF, 0xD8, 0xFF, ..] => Ok("jpeg".to_string()),
-        [0x25, 0x50, 0x44, 0x46] => Ok("pdf".to_string()),
-        _ => Ok("text".to_string()),
-    }
 }
 
 // Memory-mapped file reading for large files
@@ -81,83 +65,111 @@ fn mmap_file(filepath: &str) -> Result<String> {
     Ok(content)
 }
 
-// Optimized function to check if city is near any keyword within a sentence
-fn is_city_near_keywords(
-    sentence_words: &[String],
-    city_name: &str,
-    keywords: &HashSet<String>,
-) -> bool {
-    let city_found = sentence_words.iter().any(|word| word == city_name);
-    let keyword_found = sentence_words.iter().any(|word| keywords.contains(word));
-
-    city_found && keyword_found
+// Function to check if a city name matches a word with fuzzy logic
+fn fuzzy_match_city(city_name: &str, word: &str, threshold: f64) -> bool {
+    jaro_winkler(city_name, word) >= threshold
 }
 
+// Function to check if a city name and keyword appear within close proximity in the content
+fn city_and_keyword_in_proximity(
+    sentence_words: &HashSet<String>,
+    city_name: &str,
+    keywords: &HashSet<String>,
+    proximity_threshold: usize
+) -> bool {
+    let sentence_word_list: Vec<&String> = sentence_words.iter().collect();
+
+    // Find positions of the city and keywords in the sentence
+    let city_positions: Vec<usize> = sentence_word_list.iter()
+        .enumerate()
+        .filter(|(_, word)| **word == city_name)
+        .map(|(i, _)| i)
+        .collect();
+
+    let keyword_positions: Vec<usize> = sentence_word_list.iter()
+        .enumerate()
+        .filter(|(_, word)| keywords.contains(**word))
+        .map(|(i, _)| i)
+        .collect();
+
+    // Check if any city and keyword are within proximity
+    for city_pos in city_positions {
+        for keyword_pos in &keyword_positions {
+            if city_pos.abs_diff(*keyword_pos) <= proximity_threshold {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+// Function to process a single metadata entry, matching cities and keywords, and updating the news_by_city map
 fn process_entry(
     entry: &MetadataEntry,
     keywords: &HashSet<String>,
     city_map: &HashMap<String, City>,
     news_by_city: Arc<Mutex<HashMap<String, Vec<NewsItem>>>>,
+    fuzzy_threshold_title: f64,    // Fuzzy matching threshold for title
+    fuzzy_threshold_content: f64,  // Strict matching threshold for content
+    proximity_threshold: usize,    // Proximity threshold for matching in content
 ) -> Result<()> {
-    // Skip files that are not .txt or .html
-    if !(entry.filepath.ends_with(".html") || entry.filepath.ends_with(".txt")) {
-        println!("Skipping file due to unsupported extension: {}", entry.filepath);
-        return Ok(());
-    }
-
-    // Check file type using magic number detection
-    let file_type = detect_file_type(&entry.filepath)?;
-    if file_type != "text" {
-        println!("Skipping non-text file: {} (detected as {})", entry.filepath, file_type);
-        return Ok(());
-    }
-
-    // Memory-mapped file reading for large content
-    let content = mmap_file(&entry.filepath)?;
-    let sentences: Vec<&str> = content.split('.').collect(); // Split content into sentences
-
-    // Split title into words
-    let title_words: HashSet<String> = split_content_into_words(&entry.title).into_iter().collect();
     let mut relevant_cities = vec![];
+    let mut keyword_found = false;
 
-    // Check if any city is in the title and directly add the news to those cities
-    for city_name in city_map.keys() {
-        if title_words.contains(city_name) {
-            println!("City '{}' found in title, directly adding to city.", city_name);
+    // Split the title into words
+    let title_words: HashSet<String> = split_content_into_words(&entry.title).into_iter().collect();
+
+    // Check if any city matches in the title (with fuzzy matching)
+    for (city_name, _) in city_map.iter() {
+        if title_words.iter().any(|word| fuzzy_match_city(city_name, word, fuzzy_threshold_title)) {
+            println!("City '{}' (fuzzy) found in title, directly adding to city.", city_name);
             relevant_cities.push(city_name.clone());
         }
     }
 
-    // Check if any keyword is in the title and mark it as relevant
-    let keyword_found_in_title = title_words.iter().any(|word| keywords.contains(word));
-
-    // If a keyword is found in the title, check content for cities in the same sentence
-    if keyword_found_in_title {
-        for sentence in &sentences {
-            let sentence_words: Vec<String> = split_content_into_words(sentence);
-            for city_name in city_map.keys() {
-                if is_city_near_keywords(&sentence_words, city_name, &keywords) {
-                    relevant_cities.push(city_name.clone());
-                }
-            }
+    // Check if any keyword is found in the title
+    if title_words.iter().any(|word| keywords.contains(word)) {
+        keyword_found = true;
+        // If no city is found in the title but a keyword is, assign to UNSPECIFIED_LOCATION
+        if relevant_cities.is_empty() {
+            println!("Keyword found in title, but no city, adding to UNSPECIFIED_LOCATION.");
+            relevant_cities.push("UNSPECIFIED_LOCATION".to_string());
         }
-    } else {
-        // If no keyword is in the title, perform strict sentence-based matching for cities
+    }
+
+    // If no keyword is found in the title, fallback to content-based matching
+    if !keyword_found {
+        let content = mmap_file(&entry.filepath)?;
+        let sentences: Vec<&str> = content.split('.').collect();
+
+        // Check for city and keyword in the same sentence (very strict fuzzy matching and proximity check)
         for sentence in &sentences {
-            let sentence_words: Vec<String> = split_content_into_words(sentence);
+            let sentence_words: HashSet<String> = split_content_into_words(sentence).into_iter().collect();
+
+            // Check if a keyword is found in the sentence
             if keywords.iter().any(|keyword| sentence_words.contains(keyword)) {
-                for city_name in city_map.keys() {
-                    if sentence_words.contains(city_name) {
-                        relevant_cities.push(city_name.clone());
+                keyword_found = true;
+                // If a city is found in the same sentence, and it is within close proximity to the keyword
+                for (city_name, _) in city_map.iter() {
+                    if sentence_words.iter().any(|word| fuzzy_match_city(city_name, word, fuzzy_threshold_content)) {
+                        if city_and_keyword_in_proximity(&sentence_words, city_name, keywords, proximity_threshold) {
+                            relevant_cities.push(city_name.clone());
+                        }
                     }
                 }
             }
         }
+
+        // If no city is found but a keyword is, assign to UNSPECIFIED_LOCATION
+        if keyword_found && relevant_cities.is_empty() {
+            relevant_cities.push("UNSPECIFIED_LOCATION".to_string());
+        }
     }
 
-    // If no cities were found in title or content, add to UNSPECIFIED_LOCATION
-    if relevant_cities.is_empty() {
-        relevant_cities.push("UNSPECIFIED_LOCATION".to_string());
+    // If no keyword is found in both the title and content, do not add to the output
+    if !keyword_found {
+        return Ok(());
     }
 
     // Prepare news items for relevant cities
@@ -174,7 +186,7 @@ fn process_entry(
         ));
     }
 
-    // Batch update to reduce mutex contention
+    // Update the shared news_by_city map
     let mut news_by_city_lock = news_by_city.lock().unwrap();
     for (city, news_item) in news_updates {
         news_by_city_lock.entry(city).or_insert_with(Vec::new).push(news_item);
@@ -183,12 +195,15 @@ fn process_entry(
     Ok(())
 }
 
-// Running Parallel Processing for All Entries
+// Running parallel processing for all entries
 fn run_in_parallel(
     metadata: Vec<MetadataEntry>,
     keywords: HashSet<String>,
     city_map: HashMap<String, City>,
-) -> Result<HashMap<String, Vec<NewsItem>>> {
+    fuzzy_threshold_title: f64,    // Fuzzy matching threshold for title
+    fuzzy_threshold_content: f64,  // Strict matching threshold for content
+    proximity_threshold: usize,    // Proximity threshold for content matching
+) -> Result<Vec<NewsByCity>> {
     let news_by_city: Arc<Mutex<HashMap<String, Vec<NewsItem>>>> = Arc::new(Mutex::new(HashMap::new()));
 
     metadata.par_iter().for_each(|entry| {
@@ -197,14 +212,27 @@ fn run_in_parallel(
             &keywords,
             &city_map,
             Arc::clone(&news_by_city),
+            fuzzy_threshold_title,
+            fuzzy_threshold_content,
+            proximity_threshold, // Pass proximity threshold
         );
         if let Err(err) = result {
             eprintln!("Error processing entry {}: {}", entry.filepath, err);
         }
     });
 
-    let final_result = Arc::try_unwrap(news_by_city).unwrap().into_inner().unwrap();
-    Ok(final_result)
+    // Collect the results from the HashMap into a Vec<NewsByCity>
+    let news_by_city_map = Arc::try_unwrap(news_by_city).unwrap().into_inner().unwrap();
+    let news_by_city_vec: Vec<NewsByCity> = news_by_city_map.into_iter().map(|(city_name, news)| {
+        let coordinates = city_map.get(&city_name.to_lowercase()).map(|city| city.loc.coordinates.clone());
+        NewsByCity {
+            city: city_name,
+            coordinates,
+            news,
+        }
+    }).collect();
+
+    Ok(news_by_city_vec)
 }
 
 // Main function
@@ -215,6 +243,7 @@ fn main() -> Result<()> {
         std::process::exit(1);
     }
 
+    // Collect keywords from command line arguments
     let keywords: HashSet<String> = args[1..].iter().map(|k| k.to_lowercase()).collect();
     let city_data: Vec<City> = serde_json::from_str(&fs::read_to_string("data/cities/cities-poland.json")?)?;
 
@@ -223,10 +252,18 @@ fn main() -> Result<()> {
         .map(|city| (city.name.to_lowercase(), city))
         .collect();
 
+    // Read metadata for processing
     let metadata: Vec<MetadataEntry> = serde_json::from_str(&fs::read_to_string("data/output/metadata.json")?)?;
 
-    let news_by_city = run_in_parallel(metadata, keywords, city_map)?;
+    // Define fuzzy matching thresholds and proximity limits
+    let fuzzy_threshold_title = 0.95;  // Stricter fuzzy matching for title
+    let fuzzy_threshold_content = 0.95; // Stricter fuzzy matching for content
+    let proximity_threshold = 3;       // Proximity of 5 words in content
 
+    // Process entries in parallel
+    let news_by_city = run_in_parallel(metadata, keywords, city_map, fuzzy_threshold_title, fuzzy_threshold_content, proximity_threshold)?;
+
+    // Write output to JSON file
     let output_json = serde_json::to_string_pretty(&news_by_city)?;
     fs::create_dir_all("data/mapped")?;
     fs::write("data/mapped/news_by_city.json", output_json)?;

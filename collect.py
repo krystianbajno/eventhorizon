@@ -56,11 +56,10 @@ def is_already_processed(url, list_of_scraped_dir_files):
 def should_exclude_url(url):
     return any(url.endswith(ext) for ext in EXCLUDE_EXT)
 
-def run_playwright_for_content(urls_file, scraped_dir):
+def run_playwright_for_content(urls_file, scraped_dir, metadata):
     with open(urls_file, "r") as f:
         urls = [url.strip() for url in f if url.strip()]
 
-    metadata = []
     collection_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     count = 0
     for url in urls:
@@ -112,6 +111,8 @@ def extract_title(content):
     return match.group(1) if match else "No Title Found"
 
 def main():
+    METADATA = []
+
     if os.path.exists(ALL_URLS_FILE):
         choice = input(f"{ALL_URLS_FILE} exists. Do you want to start over and run katana again to collect URLs? (y/n): ")
         if choice.lower() == 'y':
@@ -121,8 +122,13 @@ def main():
             print(f"Using existing URLs from {ALL_URLS_FILE}")
     else:
         run_katana_for_urls(NEWS_SOURCES, ALL_URLS_FILE)
+        
+    
+    if os.path.exists(METADATA_FILE):
+        with open(METADATA_FILE, "r") as metadata_file:
+            METADATA = json.loads(metadata_file.read())
 
-    run_playwright_for_content(ALL_URLS_FILE, SCRAPED_DIR)
+    run_playwright_for_content(ALL_URLS_FILE, SCRAPED_DIR, METADATA)
 
 if __name__ == "__main__":
     main()

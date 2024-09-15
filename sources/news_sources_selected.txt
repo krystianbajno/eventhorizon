@@ -1,9 +1,9 @@
+https://pogoda.wp.pl
 https://www.interia.pl
 https://www.wp.pl
 https://www.onet.pl
 https://www.o2.pl
 https://tvn24.pl/polska
-https://www.wykop.pl
 https://www.se.pl
 https://www.fakt.pl
 https://www.niezalezna.pl
@@ -11,5 +11,6 @@ https://www.tokfm.pl
 https://www.radio.bialystok.pl
 https://www.gazetaprawna.pl
 https://www.superbiz.pl
+https://www.wykop.pl
 https://www.gazetawroclawska.pl
 https://www.gazetakrakowska.pl

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>News Map with File Upload</title>
+    <title>News Map with Infinite Scroll</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
         body {
@@ -17,14 +17,16 @@
         #map-container {
             display: flex;
             flex: 1;
+            height: 100%;
         }
 
         #news-list {
             width: 25%;
             padding: 10px;
-            overflow-y: scroll;
+            overflow-y: auto;
             background-color: #f5f5f5;
             border-right: 1px solid #ddd;
+            height: 100%;
         }
 
         #map {
@@ -65,6 +67,10 @@
             font-weight: bold;
             margin-top: 5px;
         }
+
+        details {
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -83,6 +89,9 @@
     <script>
         let map;
         const newsList = document.getElementById('news-list');
+        let newsData = [];
+        let newsBatchSize = 20; // Load 20 news items per batch
+        let currentIndex = 0;
 
         function initializeMap() {
             map = L.map('map').setView([51.9194, 19.1451], 6);
@@ -92,59 +101,77 @@
             }).addTo(map);
         }
 
-        function renderNewsList(newsData) {
-            newsList.innerHTML = '';
+        // Render a batch of news (lazy loading)
+        function renderNewsBatch() {
+            const fragment = document.createDocumentFragment();
+            const maxIndex = Math.min(currentIndex + newsBatchSize, newsData.length);
 
-            newsData.forEach(cityData => {
+            for (let i = currentIndex; i < maxIndex; i++) {
+                const cityData = newsData[i];
                 const location = cityData.city === "UNSPECIFIED_LOCATION" ? "Unspecified Location" : cityData.city;
+                const newsCount = cityData.news.length;
+
+                // Create <details> for each city bucket
+                const detailsElement = document.createElement('details');
+                const summaryElement = document.createElement('summary');
+                summaryElement.innerText = `${location} (${newsCount} entries)`;
+                detailsElement.appendChild(summaryElement);
+
                 cityData.news.forEach(news => {
                     const newsItem = document.createElement('div');
                     newsItem.classList.add('news-item');
 
-                    const newsLocation = document.createElement('p');
-                    newsLocation.classList.add('news-location');
-                    newsLocation.innerText = `Location: ${location}`;
-
                     const newsTitle = document.createElement('h4');
-                    newsTitle.innerText = news.Title;
+                    newsTitle.innerText = news.title;
 
                     const newsLink = document.createElement('a');
-                    newsLink.href = news.Link;
-                    newsLink.target = "_blank";
+                    newsLink.href = news.link;
                     newsLink.innerText = "Read more";
 
                     const collectionDate = document.createElement('p');
-                    collectionDate.innerText = `Collected on: ${news["Collection Date"]}`;
+                    collectionDate.innerText = `Collected on: ${news["collection_date"]}`;
 
                     const fileLink = document.createElement('a');
-                    fileLink.href = `file://${news["File Path"]}`;
+                    fileLink.href = `file://${news["filepath"]}`;
                     fileLink.classList.add('file-link');
                     fileLink.innerText = "Open file";
 
-                    newsItem.appendChild(newsLocation);
                     newsItem.appendChild(newsTitle);
                     newsItem.appendChild(newsLink);
                     newsItem.appendChild(collectionDate);
                     newsItem.appendChild(fileLink);
 
-                    newsList.appendChild(newsItem);
+                    detailsElement.appendChild(newsItem);
                 });
-            });
+
+                fragment.appendChild(detailsElement);
+            }
+
+            newsList.appendChild(fragment);
+            currentIndex = maxIndex;
         }
 
-        function addMarkers(newsData) {
+        // Add markers to the map
+        function addMarkers() {
             newsData.forEach(cityData => {
                 let coordinates = cityData.coordinates;
                 if (!coordinates) {
-                    coordinates = [-75.250973, -0.071389];
+                    coordinates = [-75.250973, -0.071389]; // Antarctica for unspecified locations
                 }
 
                 const marker = L.marker(coordinates).addTo(map);
                 const popupContent = `<h4>${cityData.city === "UNSPECIFIED_LOCATION" ? "Unspecified Location" : cityData.city}</h4><ul>` 
-                    + cityData.news.map(news => `<li><a href="${news.Link}" target="_blank">${news.Title}</a></li>`).join('') 
+                    + cityData.news.map(news => `<li><a href="${news.link}" target="_blank">${news.title}</a></li>`).join('') 
                     + `</ul>`;
                 marker.bindPopup(popupContent);
             });
+        }
+
+        // Load more news when scrolling to the bottom
+        function handleScroll() {
+            if (newsList.scrollTop + newsList.clientHeight >= newsList.scrollHeight) {
+                renderNewsBatch();
+            }
         }
 
         document.getElementById('jsonFile').addEventListener('change', function(event) {
@@ -152,13 +179,17 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const jsonData = JSON.parse(e.target.result);
-                    renderNewsList(jsonData);
-                    addMarkers(jsonData);
+                    newsData = JSON.parse(e.target.result);
+                    currentIndex = 0; // Reset index for infinite scroll
+                    renderNewsBatch(); // Load initial batch
+                    addMarkers(); // Add markers to the map
                 };
                 reader.readAsText(file);
             }
         });
+
+        // Attach scroll event listener
+        newsList.addEventListener('scroll', handleScroll);
 
         initializeMap();
     </script>

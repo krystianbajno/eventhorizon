@@ -34,9 +34,11 @@ node index.js
 python collect.py
 ```
 
-### 4. Run processing `process.py`
+### 4. Run processing `processing`
+Compile Rust and run processing.
+
 ```
-python3 process.py keyword1 keyword2 keyword3
+./process process.py keyword1 keyword2 keyword3
 ```
 
 ### 5. Get your output

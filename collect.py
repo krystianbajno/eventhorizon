@@ -130,5 +130,7 @@ def main():
 
     run_playwright_for_content(ALL_URLS_FILE, SCRAPED_DIR, METADATA)
 
+    print("Finished")
+    
 if __name__ == "__main__":
     main()

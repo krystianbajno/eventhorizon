@@ -1,0 +1,1 @@
+The News OSINT tool allows operators to search for specific cities and keywords, then visualize events on an interactive map. Example usage - it was recently used to track and map flooding events in Poland in September 2024.

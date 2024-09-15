@@ -38,8 +38,8 @@ python collect.py
 Compile Rust and run processing.
 
 ```bash
-./processing keyword1 keyword2 keyword3
-./processing keyword1 keyword2 --relaxed
+./processing keyword1 keyword2 keyword3 # parse only titles
+./processing keyword1 keyword2 --parse-content # parse content too
 ```
 
 ### 5. Get your output

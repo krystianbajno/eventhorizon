@@ -22,7 +22,7 @@ node index.js
 
 ### 3. Run collection
 ```
-bash collect.sh
+python collect.py
 ```
 
 ### 4. Run process.py

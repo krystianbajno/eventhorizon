@@ -37,8 +37,9 @@ python collect.py
 ### 4. Run processing `processing`
 Compile Rust and run processing.
 
-```
+```bash
 ./processing keyword1 keyword2 keyword3
+./processing keyword1 keyword2 --relaxed
 ```
 
 ### 5. Get your output

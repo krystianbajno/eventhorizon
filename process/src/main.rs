@@ -8,6 +8,7 @@ use memmap2::Mmap;
 use std::fs::File;
 use regex::Regex;
 use lazy_static::lazy_static;
+use scraper::{Html, Selector}; // HTML parser
 use strsim::jaro_winkler; // For fuzzy city matching
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -70,6 +71,19 @@ fn fuzzy_match_city(city_name: &str, word: &str, threshold: f64) -> bool {
     jaro_winkler(city_name, word) >= threshold
 }
 
+// Function to check if a keyword or city match is inside an <a> tag in content
+fn is_inside_link(html: &Html, matched_text: &str) -> bool {
+    let a_selector = Selector::parse("a").unwrap();
+    for element in html.select(&a_selector) {
+        for text in element.text() {
+            if text.contains(matched_text) {
+                return true; // The matched text is inside an <a> tag
+            }
+        }
+    }
+    false
+}
+
 // Function to check if a city name and keyword appear within close proximity in the content
 fn city_and_keyword_in_proximity(
     sentence_words: &HashSet<String>,
@@ -113,17 +127,25 @@ fn process_entry(
     fuzzy_threshold_title: f64,    // Fuzzy matching threshold for title
     fuzzy_threshold_content: f64,  // Strict matching threshold for content
     proximity_threshold: usize,    // Proximity threshold for matching in content
+    relaxed: bool                  // Allow matching inside links if true
 ) -> Result<()> {
     let mut relevant_cities = vec![];
     let mut keyword_found = false;
 
+    println!("Processing file: {}", entry.filepath);
+
+    // Read the content of the file and parse HTML
+    let content = mmap_file(&entry.filepath)?;
+    let html = Html::parse_document(&content);
+
     // Split the title into words
     let title_words: HashSet<String> = split_content_into_words(&entry.title).into_iter().collect();
+    println!("Title words: {:?}", title_words);
 
     // Check if any city matches in the title (with fuzzy matching)
     for (city_name, _) in city_map.iter() {
         if title_words.iter().any(|word| fuzzy_match_city(city_name, word, fuzzy_threshold_title)) {
-            println!("City '{}' (fuzzy) found in title, directly adding to city.", city_name);
+            println!("City '{}' (fuzzy) found in title, adding directly to city.", city_name);
             relevant_cities.push(city_name.clone());
         }
     }
@@ -131,29 +153,45 @@ fn process_entry(
     // Check if any keyword is found in the title
     if title_words.iter().any(|word| keywords.contains(word)) {
         keyword_found = true;
+        println!("Keyword found in title.");
         // If no city is found in the title but a keyword is, assign to UNSPECIFIED_LOCATION
         if relevant_cities.is_empty() {
-            println!("Keyword found in title, but no city, adding to UNSPECIFIED_LOCATION.");
+            println!("Keyword found in title, but no city, assigning to UNSPECIFIED_LOCATION.");
             relevant_cities.push("UNSPECIFIED_LOCATION".to_string());
         }
     }
 
     // If no keyword is found in the title, fallback to content-based matching
     if !keyword_found {
-        let content = mmap_file(&entry.filepath)?;
         let sentences: Vec<&str> = content.split('.').collect();
+        println!("Processing content in {} sentences.", sentences.len());
 
-        // Check for city and keyword in the same sentence (very strict fuzzy matching and proximity check)
-        for sentence in &sentences {
+        // Check for city and keyword in the same sentence (strict fuzzy matching and proximity check)
+        for (i, sentence) in sentences.iter().enumerate() {
             let sentence_words: HashSet<String> = split_content_into_words(sentence).into_iter().collect();
 
             // Check if a keyword is found in the sentence
             if keywords.iter().any(|keyword| sentence_words.contains(keyword)) {
                 keyword_found = true;
+                println!("Keyword found in sentence {}.", i + 1);
+
+                // If the keyword is inside an <a> tag, skip unless relaxed mode is on
+                if !relaxed && is_inside_link(&html, sentence) {
+                    println!("Keyword match inside <a> tag in sentence {}, skipping.", i + 1);
+                    continue;
+                }
+
                 // If a city is found in the same sentence, and it is within close proximity to the keyword
                 for (city_name, _) in city_map.iter() {
                     if sentence_words.iter().any(|word| fuzzy_match_city(city_name, word, fuzzy_threshold_content)) {
+                        // Check if the city match is inside an <a> tag
+                        if !relaxed && is_inside_link(&html, city_name) {
+                            println!("City '{}' match inside <a> tag in content, skipping.", city_name);
+                            continue;
+                        }
+
                         if city_and_keyword_in_proximity(&sentence_words, city_name, keywords, proximity_threshold) {
+                            println!("City '{}' (fuzzy) found in sentence {} near a keyword.", city_name, i + 1);
                             relevant_cities.push(city_name.clone());
                         }
                     }
@@ -163,12 +201,14 @@ fn process_entry(
 
         // If no city is found but a keyword is, assign to UNSPECIFIED_LOCATION
         if keyword_found && relevant_cities.is_empty() {
+            println!("Keyword found in content, but no city, assigning to UNSPECIFIED_LOCATION.");
             relevant_cities.push("UNSPECIFIED_LOCATION".to_string());
         }
     }
 
     // If no keyword is found in both the title and content, do not add to the output
     if !keyword_found {
+        println!("No keyword found in title or content, skipping.");
         return Ok(());
     }
 
@@ -203,6 +243,7 @@ fn run_in_parallel(
     fuzzy_threshold_title: f64,    // Fuzzy matching threshold for title
     fuzzy_threshold_content: f64,  // Strict matching threshold for content
     proximity_threshold: usize,    // Proximity threshold for content matching
+    relaxed: bool                  // Enable relaxed mode
 ) -> Result<Vec<NewsByCity>> {
     let news_by_city: Arc<Mutex<HashMap<String, Vec<NewsItem>>>> = Arc::new(Mutex::new(HashMap::new()));
 
@@ -215,6 +256,7 @@ fn run_in_parallel(
             fuzzy_threshold_title,
             fuzzy_threshold_content,
             proximity_threshold, // Pass proximity threshold
+            relaxed,             // Pass relaxed mode
         );
         if let Err(err) = result {
             eprintln!("Error processing entry {}: {}", entry.filepath, err);
@@ -238,13 +280,19 @@ fn run_in_parallel(
 // Main function
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
+    let relaxed = args.contains(&"--relaxed".to_string());
+
     if args.len() < 2 {
-        eprintln!("Usage: cargo run <keyword1> <keyword2> ...");
+        eprintln!("Usage: cargo run <keyword1> <keyword2> ... [--relaxed]");
         std::process::exit(1);
     }
 
     // Collect keywords from command line arguments
-    let keywords: HashSet<String> = args[1..].iter().map(|k| k.to_lowercase()).collect();
+    let keywords: HashSet<String> = args[1..].iter()
+        .filter(|&arg| arg != "--relaxed")
+        .map(|k| k.to_lowercase())
+        .collect();
+
     let city_data: Vec<City> = serde_json::from_str(&fs::read_to_string("data/cities/cities-poland.json")?)?;
 
     // Create a HashMap for cities for O(1) lookup
@@ -261,7 +309,7 @@ fn main() -> Result<()> {
     let proximity_threshold = 3;       // Proximity of 5 words in content
 
     // Process entries in parallel
-    let news_by_city = run_in_parallel(metadata, keywords, city_map, fuzzy_threshold_title, fuzzy_threshold_content, proximity_threshold)?;
+    let news_by_city = run_in_parallel(metadata, keywords, city_map, fuzzy_threshold_title, fuzzy_threshold_content, proximity_threshold, relaxed)?;
 
     // Write output to JSON file
     let output_json = serde_json::to_string_pretty(&news_by_city)?;

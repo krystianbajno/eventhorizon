@@ -1,0 +1,3 @@
+data/cities/*
+data/output/
+collect_cities/node_modules

@@ -1,4 +1,6 @@
-# news-event-map
+# eventhorizon
+
+<img src="https://raw.githubusercontent.com/krystianbajno/eventhorizon/main/images/image.png"/>
 
 The News OSINT tool that allows operators to search for specific cities and keywords, then visualize events on a map. 
 

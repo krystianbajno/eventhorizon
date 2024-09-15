@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>News Map</title>
+    <title>Event Horizon - News Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
         body {
@@ -12,6 +12,7 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
+            font-family: 'Courier New', Courier, monospace;
         }
 
         #map-container {
@@ -24,7 +25,7 @@
             width: 25%;
             padding: 10px;
             overflow-y: auto;
-            background-color: #f5f5f5;
+            background-color: #2a2a2a;
             border-right: 1px solid #ddd;
             height: 100%;
         }
@@ -38,6 +39,7 @@
             margin-bottom: 10px;
             padding: 10px;
             border-bottom: 1px solid #ccc;
+            font-family: 'Arial'
         }
 
         .news-item h4 {
@@ -46,21 +48,18 @@
 
         .news-item a {
             text-decoration: none;
-            color: blue;
+            font-weight: 800;
+            cursor: pointer;
+            color: #4a8aff;
         }
 
         #fileInput {
             padding: 10px;
-            background-color: #f0f0f0;
+            color: white;
+            background-color: #2a2a2a;
             border: 1px solid #ccc;
             cursor: pointer;
-        }
-
-        .file-link {
-            display: inline-block;
-            margin-top: 5px;
-            color: red;
-            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
         }
 
         .news-location {
@@ -69,16 +68,36 @@
         }
 
         details {
+            color: white;
             margin-bottom: 10px;
+        }
+
+        #searchBar {
+            padding: 10px;
+            width: 100%;
+            border: 1px solid #1a1a1a;
+            box-sizing: border-box;
+            background: #4a4a4a;
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .event-horizon {
+          font-weight:800;
+          letter-spacing: 2px;
+          font-size: 1.0rem;
         }
     </style>
 </head>
 <body>
 
     <div id="fileInput">
-        <label for="jsonFile">Upload JSON file: </label>
+        <label class="event-horizon">EventHorizon</label>
+        <label for="jsonFile"></label>
         <input type="file" id="jsonFile" accept=".json">
     </div>
+
+    <input type="text" id="searchBar" placeholder="Search news...">
 
     <div id="map-container">
         <div id="news-list"></div>
@@ -90,7 +109,8 @@
         let map;
         const newsList = document.getElementById('news-list');
         let newsData = [];
-        let newsBatchSize = 400; // Load 20 news items per batch
+        let filteredNewsData = [];
+        let newsBatchSize = 400; // Load 400 news items per batch
         let currentIndex = 0;
 
         function initializeMap() {
@@ -104,10 +124,10 @@
         // Renders a batch of news items to the list
         function renderNewsBatch() {
             const fragment = document.createDocumentFragment();
-            const maxIndex = Math.min(currentIndex + newsBatchSize, newsData.length);
+            const maxIndex = Math.min(currentIndex + newsBatchSize, filteredNewsData.length);
 
             for (let i = currentIndex; i < maxIndex; i++) {
-                const cityData = newsData[i];
+                const cityData = filteredNewsData[i];
                 const location = cityData.city === "UNSPECIFIED_LOCATION" ? "Unspecified Location" : cityData.city;
                 const newsCount = cityData.news.length;
 
@@ -123,8 +143,12 @@
                     const newsTitle = document.createElement('h4');
                     newsTitle.innerText = news.title;
 
+                    const newsUrl = document.createElement('p');
+                    newsUrl.innerText = news.link;
+
                     const newsLink = document.createElement('a');
                     newsLink.href = news.link;
+                    newsLink.classList.add("news-link")
                     newsLink.innerText = "Read more";
                     newsLink.target = "_blank";  // Open links in new tab
 
@@ -134,12 +158,11 @@
                     const fileLink = document.createElement('a');
                     fileLink.href = `file://${news.filepath}`;
                     fileLink.classList.add('file-link');
-                    fileLink.innerText = "Open file";
 
                     newsItem.appendChild(newsTitle);
+                    newsItem.appendChild(newsUrl);
                     newsItem.appendChild(newsLink);
                     newsItem.appendChild(collectionDate);
-                    newsItem.appendChild(fileLink);
 
                     detailsElement.appendChild(newsItem);
                 });
@@ -152,13 +175,12 @@
         }
 
         function addMarkers() {
-            newsData.forEach(cityData => {
+            filteredNewsData.forEach(cityData => {
                 let coordinates = cityData.coordinates;
                 if (!coordinates) {
                     coordinates = [-75.250973, -0.071389]; // Default to Antarctica for unspecified locations
                 }
 
-                // Make sure that coordinates[0] is latitude and coordinates[1] is longitude
                 const marker = L.marker([coordinates[1], coordinates[0]]).addTo(map);
                 const popupContent = `<h4>${cityData.city === "UNSPECIFIED_LOCATION" ? "Unspecified Location" : cityData.city}</h4><ul>` 
                     + cityData.news.map(news => `<li><a href="${news.link}" target="_blank">${news.title}</a></li>`).join('') 
@@ -174,6 +196,24 @@
             }
         }
 
+        function filterNews(searchQuery) {
+            if (!searchQuery) {
+                filteredNewsData = [...newsData];
+            } else {
+                filteredNewsData = newsData.filter(cityData =>
+                    cityData.news.some(news => 
+                        news.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        cityData.city.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                );
+            }
+
+            currentIndex = 0;
+            newsList.innerHTML = '';
+            renderNewsBatch();
+            addMarkers();
+        }
+
         document.getElementById('jsonFile').addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
@@ -181,6 +221,7 @@
                 reader.onload = function(e) {
                     try {
                         newsData = JSON.parse(e.target.result);
+                        filteredNewsData = [...newsData];
 
                         // Sort cities alphabetically by city name (A-Z)
                         newsData.sort((a, b) => {
@@ -201,6 +242,9 @@
             }
         });
 
+        document.getElementById('searchBar').addEventListener('input', function(event) {
+            filterNews(event.target.value);
+        });
 
         newsList.addEventListener('scroll', handleScroll);
 

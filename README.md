@@ -8,13 +8,15 @@ It aggregates information and maps it to the geo map. Fuzzy search for keywords 
 
 # Example usages 
 
-- Track and map natural disasters - for instance, follow and visualize flooding events in Poland during September 2024.
-- Track and map war events - track and map events that happened in warzones.
-- Headline analysis - find mentions of keywords in news article titles and plot them on a map.
-- Keyword mapping - search for mentions of specific terms on websites and automatically map them to their geographic locations.
-- Job hunting - scrape job listings based on specific keywords (e.g., "remote Python developer") and map their locations based on page content.
-- Track protests or rallies - monitor social or political events by aggregating mentions from news sources and mapping them geographically.
-- Monitor supply chain disruptions - map industrial or logistical issues (e.g., port strikes or factory shutdowns) in specific regions.
+- **Track natural disasters**: Visualize events like flooding in Poland during September 2024.
+- **Monitor war events**: Track and map incidents in warzones.
+- **Headline analysis**: Plot keyword mentions from news article titles on a map.
+- **Keyword mapping**: Search websites for terms and automatically map them to locations.
+- **Job hunting**: Scrape job listings (e.g., "remote Python developer") and map them.
+- **Track protests**: Aggregate social or political event mentions and map them.
+- **Monitor supply chain issues**: Map disruptions like port strikes or factory shutdowns.
+
+And more.
 
 If the keyword in event could not be mapped to city, then the event will be mapped to "UNSPECIFIED_LOCATION".
 

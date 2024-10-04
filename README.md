@@ -63,7 +63,7 @@ Compile the processing module in Rust, then run it to parse the data:
 ./processing keyword1 keyword2 --parse-content # parse content too
 ```
 
-Precompiled binary can be found in this repository.
+Precompiled Mach-O binary for MacOS M1 can be found in this repository.
 
 ### 5. Retrieve the Output 
 The tool will generate a JSON file containing the mapped data. This file will be stored at:

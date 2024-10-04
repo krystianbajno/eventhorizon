@@ -18,7 +18,7 @@ It aggregates information and maps it to the geo map. Fuzzy search for keywords 
 
 If the keyword in event could not be mapped to city, then the event will be mapped to "UNSPECIFIED_LOCATION".
 
-# Lifecycle
+# Intelligence Lifecycle
 1. Direction
 2. Collection
 3. Processing and exploitation

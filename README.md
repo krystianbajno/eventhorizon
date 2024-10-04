@@ -9,7 +9,6 @@ It aggregates information and maps it to the geo map. Fuzzy search for keywords 
 # Example usages 
 
 - Track and map natural disasters - for instance, follow and visualize flooding events in Poland during September 2024.
-- Scrape custom data sources - extract information from specific websites of your choice, then display the connections and events on a map.
 - Keyword mapping - search for mentions of specific terms on websites and automatically map them to their geographic locations.
 - Headline analysis - find mentions of keywords in news article titles and plot them on a map.
 - Job hunting - scrape job listings based on specific keywords (e.g., "remote Python developer") and map their locations based on page content.

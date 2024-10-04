@@ -58,7 +58,7 @@ python collect.py
 ```
 
 ### 4. Run processing `processing`
-Compile the processing module in Rust, then run it to parse the data:
+Compile the processing module in Rust, place it in root project directory, then run it to parse the data:
 
 ```bash
 ./processing keyword1 keyword2 keyword3 # parse only titles

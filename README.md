@@ -28,11 +28,13 @@ If the keyword in event could not be mapped to city, then the event will be mapp
 # How to:
 
 ### 1. Setup your news_sources_selected.txt
+Configure the sources from which you want to retrieve information by editing the news_sources_selected.txt file:
 ```
 sources/news_sources_selected.txt
 ```
 
 ### 2. Retrieve cities database
+Run the following commands to install the necessary dependencies and retrieve the database of cities:
 ```
 cd collect_cities
 npm install
@@ -40,17 +42,20 @@ node index.js
 ```
 
 ### 3. Run collection `collect.py`
+Execute the Python script to collect data from your chosen sources:
 ```
 python collect.py
 ```
 
 ### 4. Run processing `processing`
-Compile Rust and run processing.
+Compile the processing module in Rust, then run it to parse the data:
 
 ```bash
 ./processing keyword1 keyword2 keyword3 # parse only titles
 ./processing keyword1 keyword2 --parse-content # parse content too
 ```
+
+Precompiled binary can be found in this repository.
 
 ### 5. Retrieve the Output 
 The tool will generate a JSON file containing the mapped data. This file will be stored at:

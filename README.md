@@ -13,7 +13,7 @@ It aggregates information and maps it to the geo map. Fuzzy search for keywords 
 - Headline analysis - find mentions of keywords in news article titles and plot them on a map.
 - Job hunting - scrape job listings based on specific keywords (e.g., "remote Python developer") and map their locations based on page content.
 - Track protests or rallies - monitor social or political events by aggregating mentions from news sources and mapping them geographically.
-- Monitor supply chain disruptions - use it to map industrial or logistical issues (e.g., port strikes or factory shutdowns) in specific regions.
+- Monitor supply chain disruptions - map industrial or logistical issues (e.g., port strikes or factory shutdowns) in specific regions.
 
 If the keyword in event could not be mapped to city, then the event will be mapped to "UNSPECIFIED_LOCATION".
 

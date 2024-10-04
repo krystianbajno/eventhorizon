@@ -6,7 +6,7 @@ The versatile OSINT tool that allows operators to search for specific cities and
 
 It aggregates news and maps them to the geo map. Search for keywords and cities.
 
-### Example usages 
+# Example usages 
 
 - Track and map natural disasters - for instance, follow and visualize flooding events in Poland during September 2024.
 - Scrape custom data sources - extract information from specific websites of your choice, then display the connections and events on a map.

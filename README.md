@@ -28,10 +28,11 @@ If the keyword in event could not be mapped to city, then the event will be mapp
 # How to:
 
 ### 0. Install dependencies
-- Install katana
-- Install playwright
-- Install node
-- Install python
+- Install katana - https://github.com/projectdiscovery/katana
+- Install playwright - https://playwright.dev/python/docs/intro 
+- Install node - https://nodejs.org/en
+- Install python - https://www.python.org/downloads/
+- Install rust - https://github.com/rust-lang/rust
 - Run `pip install -r requirements.txt`
 
 ### 1. Setup your news_sources_selected.txt

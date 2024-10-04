@@ -4,7 +4,7 @@
 
 The versatile OSINT tool that allows operators to search for specific cities and keywords, then visualize events on a map. 
 
-It aggregates news and maps them to the geo map. Search for keywords and cities.
+It aggregates information and maps it to the geo map. Fuzzy search for keywords and cities.
 
 # Example usages 
 
@@ -26,6 +26,13 @@ If the keyword in event could not be mapped to city, then the event will be mapp
 5. Dissemination
 
 # How to:
+
+### 0. Install dependencies
+- Install katana
+- Install playwright
+- Install node
+- Install python
+- Run `pip install -r requirements.txt`
 
 ### 1. Setup your news_sources_selected.txt
 Configure the sources from which you want to retrieve information by editing the news_sources_selected.txt file:
